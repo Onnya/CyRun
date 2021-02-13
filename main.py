@@ -55,15 +55,24 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, *args):
         global speed
-        if args:
+        if pygame.sprite.spritecollideany(self, objects):
+            pl_state = True
+        else:
+            pl_state = False
+            speed = 0
+        if not pl_state:
+            self.rect = self.rect.move(0, 1)
+        if args and pl_state:
             if args[0] == "KEYDOWN" and args[1] == "RIGHT":
                 speed += 1
             elif args[0] == "KEYUP" and args[1] == "RIGHT":
-                speed -= 1
+                if speed != 0:
+                    speed -= 1
             elif args[0] == "KEYDOWN" and args[1] == "LEFT":
                 speed -= 1
             elif args[0] == "KEYUP" and args[1] == "LEFT":
-                speed += 1
+                if speed != 0:
+                    speed += 1
         self.rect.x += speed
 
 
