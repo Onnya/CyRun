@@ -39,18 +39,33 @@ class Floor(pygame.sprite.Sprite):
         self.image = pygame.Surface([length, 10])
         self.image.fill("black")
         self.rect = pygame.Rect(0, 440, length, 10)
+        self.mask = pygame.mask.from_surface(self.image)
+
+    def update(self, *args):
+        global pl_state
+        if pygame.sprite.collide_mask(self, pl):
+            pl_state = True
+        else:
+            pl_state = False
 
 
 class Border(pygame.sprite.Sprite):
     def __init__(self, x, h):
         super().__init__(borders, all_sprites)
         self.image = pygame.Surface([1, h])
+        self.mask = pygame.mask.from_surface(self.image)
         self.image.set_colorkey(self.image.get_at((0, 0)))
         self.rect = pygame.Rect(x, 0, 1, h)
 
+    def update(self):
+        global speed
+        if pygame.sprite.collide_mask(self, pl):
+            pl.rect.x -= speed
+            speed = 0
+
 
 class Player(pygame.sprite.Sprite):
-    image = load_image("charac.png")
+    image = load_image("charac1.png")
 
     def __init__(self, pos):
         super().__init__(players, all_sprites)
@@ -61,15 +76,10 @@ class Player(pygame.sprite.Sprite):
         self.rect.y = pos[1] - self.rect.h - 10
 
     def update(self, *args):
-        global speed
-        if pygame.sprite.spritecollideany(self, objects):
-            pl_state = True
-        else:
-            pl_state = False
-            speed = 0
+        global speed, pl_state
         if not pl_state:
             self.rect = self.rect.move(0, 1)
-        if args and pl_state:
+        if args:
             if args[0] == "KEYDOWN" and args[1] == "RIGHT":
                 speed += 1
             elif args[0] == "KEYUP" and args[1] == "RIGHT":
@@ -81,9 +91,6 @@ class Player(pygame.sprite.Sprite):
                 if speed != 0:
                     speed += 1
         self.rect.x += speed
-        if pygame.sprite.spritecollideany(self, borders):
-            self.rect.x -= speed
-            speed = 0
 
 
 bg = parallax.ParallaxSurface((700, 450), pygame.RLEACCEL)
@@ -111,11 +118,12 @@ while run:
             pl.update("KEYDOWN", "LEFT")
         if event.type == KEYUP and event.key == K_LEFT:
             pl.update("KEYUP", "LEFT")
+    all_sprites.update()
+    players.update()
+    camera.update(pl)
     bg.scroll(speed, orientation)
     bg.draw(screen)
     all_sprites.draw(screen)
-    players.update()
-    camera.update(pl)
     for sprite in all_sprites:
         camera.apply(sprite)
 
