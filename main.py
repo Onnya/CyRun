@@ -63,45 +63,46 @@ class Border(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    image = load_image("charac1.png")
+    image = load_image("charac1.png", color_key=-1)
 
     def __init__(self, pos):
         super().__init__(players, all_sprites)
         self.image = Player.image
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = pos[0] - 15
+        self.rect.x = pos[0] + 5
         self.rect.y = pos[1] - self.rect.h - 10
         self.speed = 0
         self.jump = 0
         self.pl_state = False
+        self.hor_col = False
 
     def update(self, *args):
-        if not pl.pl_state:
-            self.rect = self.rect.move(0, 1)
         if args:
             if args[0] == "KEYDOWN" and args[1] == "RIGHT":
                 pl.speed += 1
             elif args[0] == "KEYUP" and args[1] == "RIGHT":
-                if pl.speed != 0:
-                    pl.speed -= 1
+                pl.speed -= 1
             elif args[0] == "KEYDOWN" and args[1] == "LEFT":
                 pl.speed -= 1
             elif args[0] == "KEYUP" and args[1] == "LEFT":
-                if pl.speed != 0:
-                    pl.speed += 1
+                pl.speed += 1
             elif args[0] == "KEYDOWN" and args[1] == "UP" and pl.pl_state:
                 pl.jump = 150
-        self.rect.x += pl.speed
-        if pl.jump != 0:
-            self.rect.y -= 2
-            pl.jump -= 1
+        else:
+            if not pl.pl_state:
+                self.rect = self.rect.move(0, 1)
+            if not pl.hor_col:
+                self.rect.x += pl.speed
+            if pl.jump != 0:
+                self.rect.y -= 2
+                pl.jump -= 1
 
 
 bg = parallax.ParallaxSurface((700, 450), pygame.RLEACCEL)
-bg.add('far-buildings.png', 17)
-bg.add('back-buildings.png', 9)
-bg.add('foreground.png', 5)
+bg.add(os.path.join('data', 'far-buildings.png'), 17)
+bg.add(os.path.join('data', 'back-buildings.png'), 9)
+bg.add(os.path.join('data', 'foreground.png'), 5)
 
 floor = Floor(1500)
 lb = Border()
@@ -126,15 +127,22 @@ while run:
             pl.update("KEYUP", "LEFT")
         if event.type == KEYDOWN and event.key == K_UP:
             pl.update("KEYDOWN", "UP")
+    players.update()
     borders.update()
     objects.update()
-    players.update()
 
-    bg.scroll(pl.speed, orientation)
+
+    if not pl.hor_col:
+        bg.scroll(pl.speed, orientation)
+
+    pl.hor_col = False
+
     bg.draw(screen)
     all_sprites.draw(screen)
     for sprite in all_sprites:
         camera.apply(sprite)
     camera.update(pl)
+
+
     pygame.display.flip()
     clock.tick(fps)
