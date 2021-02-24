@@ -42,11 +42,10 @@ class Floor(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
     def update(self, *args):
-        global pl_state
         if pygame.sprite.collide_mask(self, pl):
-            pl_state = True
+            pl.pl_state = True
         else:
-            pl_state = False
+            pl.pl_state = False
 
 
 class Border(pygame.sprite.Sprite):
@@ -58,10 +57,9 @@ class Border(pygame.sprite.Sprite):
         self.rect = pygame.Rect(0, 0, 1, 500)
 
     def update(self):
-        global speed
         if pygame.sprite.collide_mask(self, pl):
-            pl.rect.x -= speed
-            speed = 0
+            pl.rect.x -= pl.speed
+            pl.speed = 0
 
 
 class Player(pygame.sprite.Sprite):
@@ -74,28 +72,30 @@ class Player(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
         self.rect.x = pos[0] - 15
         self.rect.y = pos[1] - self.rect.h - 10
+        self.speed = 0
+        self.jump = 0
+        self.pl_state = False
 
     def update(self, *args):
-        global speed, pl_state, jump
-        if not pl_state:
+        if not pl.pl_state:
             self.rect = self.rect.move(0, 1)
         if args:
             if args[0] == "KEYDOWN" and args[1] == "RIGHT":
-                speed += 1
+                pl.speed += 1
             elif args[0] == "KEYUP" and args[1] == "RIGHT":
-                if speed != 0:
-                    speed -= 1
+                if pl.speed != 0:
+                    pl.speed -= 1
             elif args[0] == "KEYDOWN" and args[1] == "LEFT":
-                speed -= 1
+                pl.speed -= 1
             elif args[0] == "KEYUP" and args[1] == "LEFT":
-                if speed != 0:
-                    speed += 1
-            elif args[0] == "KEYDOWN" and args[1] == "UP" and pl_state:
-                jump = 150
-        self.rect.x += speed
-        if jump != 0:
+                if pl.speed != 0:
+                    pl.speed += 1
+            elif args[0] == "KEYDOWN" and args[1] == "UP" and pl.pl_state:
+                pl.jump = 150
+        self.rect.x += pl.speed
+        if pl.jump != 0:
             self.rect.y -= 2
-            jump -= 1
+            pl.jump -= 1
 
 
 bg = parallax.ParallaxSurface((700, 450), pygame.RLEACCEL)
@@ -110,8 +110,8 @@ camera = Camera()
 
 
 run = True
-speed = 0
-jump = 0
+
+
 while run:
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -130,7 +130,7 @@ while run:
     objects.update()
     players.update()
 
-    bg.scroll(speed, orientation)
+    bg.scroll(pl.speed, orientation)
     bg.draw(screen)
     all_sprites.draw(screen)
     for sprite in all_sprites:
