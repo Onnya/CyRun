@@ -14,7 +14,7 @@ screen = pygame.display.set_mode((700, 450), pygame.DOUBLEBUF)
 pygame.display.set_icon(load_image('logo.png'))
 size = width, height = 700, 450
 orientation = 'horizontal'
-fps = 30
+fps = 450
 pygame.display.set_caption('CyRun')
 all_sprites = pygame.sprite.Group()
 players = pygame.sprite.Group()
@@ -140,11 +140,14 @@ class Object(pygame.sprite.Sprite):
                 if pygame.sprite.collide_mask(self, pl):
                     pl.rect.y -= 2
                     pl.pl_state = True
+                    #print("platform")
                 else:
                     pl.jump = 0
                     pl.ver_col = True
+                    print("vertical")
             else:
                 pl.hor_col = True
+                print("horizont")
 
 
 class Floor(Object):
@@ -206,9 +209,7 @@ class Player(pygame.sprite.Sprite):
                 self.rect = self.rect.move(0, 1)
                 objects.update()
                 borders.update()
-            self.rect.x += self.speed
-            objects.update()
-            borders.update()
+
             if self.jump != 0:
                 if self.pl_state:
                     self.rect.y -= 1
@@ -221,6 +222,9 @@ class Player(pygame.sprite.Sprite):
 
                 objects.update()
                 borders.update()
+            self.rect.x += self.speed
+            objects.update()
+            borders.update()
 
     def reset(self):
         self.rect.x = - 15
@@ -258,15 +262,12 @@ while run:
             pl.update("KEYDOWN", "RIGHT")
         if event.type == KEYUP and event.key == K_RIGHT:
             pl.update("KEYUP", "RIGHT")
-            info()
         if event.type == KEYDOWN and event.key == K_LEFT:
             pl.update("KEYDOWN", "LEFT")
         if event.type == KEYUP and event.key == K_LEFT:
             pl.update("KEYUP", "LEFT")
-            info()
         if event.type == KEYDOWN and event.key == K_UP:
             pl.update("KEYDOWN", "UP")
-            info()
 
     players.update()
 
