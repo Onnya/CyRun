@@ -79,13 +79,19 @@ def start_screen():
         pygame.display.flip()
 
 
-def load_lvl():
+def load_lvl(new=False):
     global objects
     lvl = gen_lvl()
-
     pl.reset()
+    if new:
+        pl.speed += 1
     camera.reset()
+    fl.reset()
+    vb.reset()
+    hb.reset()
+    nb.reset()
     objects = pygame.sprite.Group()
+
 
     Object("next_lvl.png", -1, None, 1550, 150)
 
@@ -140,14 +146,11 @@ class Object(pygame.sprite.Sprite):
                 if pygame.sprite.collide_mask(self, pl):
                     pl.rect.y -= 2
                     pl.pl_state = True
-                    #print("platform")
                 else:
                     pl.jump = 0
                     pl.ver_col = True
-                    print("vertical")
             else:
                 pl.hor_col = True
-                print("horizont")
 
 
 class Floor(Object):
@@ -157,6 +160,9 @@ class Floor(Object):
         self.image.fill("black")
         self.rect = pygame.Rect(0, 440, 1500, 10)
         self.mask = pygame.mask.from_surface(self.image)
+
+    def reset(self):
+        self.rect = pygame.Rect(0, 440, 1500, 10)
 
 
 class Border(Object):
@@ -173,6 +179,29 @@ class Border(Object):
             self.mask = pygame.mask.from_surface(self.image)
             self.image.set_colorkey(self.image.get_at((0, 0)))
             self.rect = pygame.Rect(0, 0, 1500, 1)
+
+    def reset(self):
+        if self.type == "v":
+            self.rect = pygame.Rect(-1, 0, 1, 500)
+        else:
+            self.rect = pygame.Rect(0, 0, 1500, 1)
+
+
+class NextLvlBorder(Border):
+    def __init__(self):
+        super(Object, self).__init__(borders, all_sprites)
+        self.type = type
+        self.image = pygame.Surface([1, 500])
+        self.mask = pygame.mask.from_surface(self.image)
+        self.image.set_colorkey(self.image.get_at((0, 0)))
+        self.rect = pygame.Rect(1500, 0, 1, 500)
+
+    def update(self):
+        if pygame.sprite.collide_mask(self, pl):
+            load_lvl(True)
+
+    def reset(self):
+        self.rect = pygame.Rect(1500, 0, 1, 500)
 
 
 class Player(pygame.sprite.Sprite):
@@ -227,7 +256,7 @@ class Player(pygame.sprite.Sprite):
             borders.update()
 
     def reset(self):
-        self.rect.x = - 15
+        self.rect.x = -15
         self.rect.y = 440 - self.rect.h
         self.speed = 0
         self.jump = 0
@@ -243,9 +272,10 @@ bg.add(os.path.join('data', 'far-buildings.png'), 17)
 bg.add(os.path.join('data', 'back-buildings.png'), 9)
 bg.add(os.path.join('data', 'foreground.png'), 5)
 
-Floor()
-Border("v")
-Border("h")
+fl = Floor()
+vb = Border("v")
+hb = Border("h")
+nb = NextLvlBorder()
 pl = Player()
 camera = Camera()
 
