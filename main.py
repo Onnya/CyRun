@@ -1,5 +1,6 @@
 import os
 import sys
+import random
 import pygame
 from pygame.locals import *
 import parallax
@@ -20,6 +21,9 @@ all_sprites = pygame.sprite.Group()
 players = pygame.sprite.Group()
 objects = pygame.sprite.Group()
 borders = pygame.sprite.Group()
+enemies = pygame.sprite.Group()
+visions = pygame.sprite.Group()
+bullets = pygame.sprite.Group()
 clock = pygame.time.Clock()
 
 
@@ -56,16 +60,6 @@ def start_screen():
     img = load_image('ng.png')
     screen.blit(img, (230, 275))
 
-    #font = pygame.font.Font(None, 30)
-    #text_coord = 50
-    #for line in intro_text:
-    #    string_rendered = font.render(line, 1, pygame.Color('black'))
-    #    intro_rect = string_rendered.get_rect()
-    #    text_coord += 10
-    #    intro_rect.top = text_coord
-    #    intro_rect.x = 10
-    #    text_coord += intro_rect.height
-    #    screen.blit(string_rendered, intro_rect)
 
     while True:
         for event in pygame.event.get():
@@ -80,7 +74,7 @@ def start_screen():
 
 
 def load_lvl(new=False):
-    global objects
+    global objects, enemies, visions, bullets
     lvl = gen_lvl()
     pl.reset()
     if new:
@@ -91,7 +85,9 @@ def load_lvl(new=False):
     hb.reset()
     nb.reset()
     objects = pygame.sprite.Group()
-
+    enemies = pygame.sprite.Group()
+    visions = pygame.sprite.Group()
+    bullets = pygame.sprite.Group()
 
     Object("next_lvl.png", -1, None, 1550, 150)
 
@@ -108,6 +104,9 @@ def load_lvl(new=False):
                 p = Object(n, c, l, x, y)
                 lvl[i][j] = p.rec_params()
 
+    for i in range(5):
+        Enemy()
+
 
 class Camera:
     def __init__(self):
@@ -121,6 +120,29 @@ class Camera:
 
     def reset(self):
         self.dx = 0
+
+
+class AnimatedSprite(pygame.sprite.Sprite):
+    def __init__(self, group, sheet, columns, rows, x, y):
+        super().__init__(group)
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(x, y)
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
 
 
 class Object(pygame.sprite.Sprite):
@@ -137,20 +159,20 @@ class Object(pygame.sprite.Sprite):
     def rec_params(self):
         return (self.rect.w, self.rect.h)
 
-    def update(self):
-        if pygame.sprite.collide_mask(self, pl):
-            pl.rect.x -= pl.speed
-            if pygame.sprite.collide_mask(self, pl):
-                pl.rect.x += pl.speed
-                pl.rect.y += 1
-                if pygame.sprite.collide_mask(self, pl):
-                    pl.rect.y -= 2
-                    pl.pl_state = True
+    def update(self, obj):
+        if pygame.sprite.collide_mask(self, obj):
+            obj.rect.x -= obj.speed
+            if pygame.sprite.collide_mask(self, obj):
+                obj.rect.x += obj.speed
+                obj.rect.y += 1
+                if pygame.sprite.collide_mask(self, obj):
+                    obj.rect.y -= 2
+                    obj.pl_state = True
                 else:
-                    pl.jump = 0
-                    pl.ver_col = True
+                    obj.jump = 0
+                    obj.ver_col = True
             else:
-                pl.hor_col = True
+                obj.hor_col = True
 
 
 class Floor(Object):
@@ -196,7 +218,9 @@ class NextLvlBorder(Border):
         self.image.set_colorkey(self.image.get_at((0, 0)))
         self.rect = pygame.Rect(1500, 0, 1, 500)
 
-    def update(self):
+    def update(self, obj):
+        if type(obj) is not Player:
+            super().update(obj)
         if pygame.sprite.collide_mask(self, pl):
             load_lvl(True)
 
@@ -221,7 +245,6 @@ class Player(pygame.sprite.Sprite):
         self.ver_col = False
 
     def update(self, *args):
-        global objects
         if args:
             if args[0] == "KEYDOWN" and args[1] == "RIGHT":
                 self.speed += 1
@@ -236,8 +259,8 @@ class Player(pygame.sprite.Sprite):
         else:
             if not self.pl_state:
                 self.rect = self.rect.move(0, 1)
-                objects.update()
-                borders.update()
+                objects.update(self)
+                borders.update(self)
 
             if self.jump != 0:
                 if self.pl_state:
@@ -249,11 +272,11 @@ class Player(pygame.sprite.Sprite):
                     self.rect.y -= 2
                     self.jump -= 1
 
-                objects.update()
-                borders.update()
+                objects.update(self)
+                borders.update(self)
             self.rect.x += self.speed
-            objects.update()
-            borders.update()
+            objects.update(self)
+            borders.update(self)
 
     def reset(self):
         self.rect.x = -15
@@ -263,6 +286,117 @@ class Player(pygame.sprite.Sprite):
         self.pl_state = False
         self.hor_col = False
         self.ver_col = False
+
+
+class EnemyVision(pygame.sprite.Sprite):
+    def __init__(self, enemy):
+        super().__init__(visions)
+        self.enemy = enemy
+        self.image = pygame.Surface([150, 40])
+        self.mask = pygame.mask.from_surface(self.image)
+        self.image.set_colorkey(self.image.get_at((0, 0)))
+        if self.enemy.speed == 1:
+            self.rect = pygame.Rect(self.enemy.rect.x, self.enemy.rect.y, 200, 40)
+        else:
+            if self.enemy.per_state:
+                self.rect = pygame.Rect(self.enemy.rect.x, self.enemy.rect.y, 200, 40)
+            else:
+                self.rect = pygame.Rect(self.enemy.rect.x - 100, self.enemy.rect.y, 200, 40)
+
+    def update(self):
+        if self.enemy.speed == 1 or self.enemy.per_state:
+            self.rect = pygame.Rect(self.enemy.rect.x, self.enemy.rect.y, 200, 40)
+        else:
+            self.rect = pygame.Rect(self.enemy.rect.x - 100, self.enemy.rect.y, 200, 40)
+
+
+class Enemy(pygame.sprite.Sprite):
+    image = load_image("alien.png", color_key=-1)
+
+    def __init__(self):
+        super().__init__(enemies)
+
+        self.per_state = False
+
+        self.image = Enemy.image
+        self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
+
+        self.speed = random.choice((-1, 0, 1))
+        if self.speed == 1:
+            self.image = pygame.transform.flip(self.image, True, False)
+            self.image.set_colorkey(self.image.get_at((0, 0)))
+            self.mask = pygame.mask.from_surface(self.image)
+        elif self.speed == 0:
+            if round(random.random()):
+                self.image = pygame.transform.flip(self.image, True, False)
+                self.image.set_colorkey(self.image.get_at((0, 0)))
+                self.mask = pygame.mask.from_surface(self.image)
+                self.per_state = True
+
+        self.pl_state = False
+        self.hor_col = False
+
+        self.rect.x = random.randint(100, 1450)
+        self.rect.y = random.randint(0, 365)
+
+        while pygame.sprite.spritecollideany(self, objects):
+            self.rect.x = random.randint(100, 1450)
+            self.rect.y = random.randint(0, 365)
+
+        self.vision = EnemyVision(self)
+
+    def update(self):
+        if not self.pl_state:
+            self.rect = self.rect.move(0, 1)
+            objects.update(self)
+            borders.update(self)
+
+        if self.pl_state:
+            self.rect.x += self.speed
+            objects.update(self)
+            borders.update(self)
+
+        if self.hor_col:
+            self.speed = -1 if self.speed == 1 else 1
+            self.image = pygame.transform.flip(self.image, True, False)
+            self.image.set_colorkey(self.image.get_at((0, 0)))
+            self.mask = pygame.mask.from_surface(self.image)
+
+            if self.speed == -1:
+                self.rect.x -= 50
+            else:
+                self.rect.x += 50
+
+        self.vision.update()
+
+        if (not pygame.sprite.spritecollideany(self.vision, objects)) and (pygame.sprite.collide_mask(self.vision, pl)):
+            if self.speed == 1 or self.per_state:
+                EnemyBullet(self.rect.x + 50, self.rect.y + 20, 1)
+            else:
+                EnemyBullet(self.rect.x, self.rect.y + 20, -1)
+
+
+class EnemyBullet(AnimatedSprite):
+    def __init__(self, x, y, direct):
+        super().__init__(bullets, load_image("alien_bullet.png"), 1, 8, x, y)
+        self.w = 200
+        self.direct = direct
+        self.step = 0
+
+    def update(self):
+        if self.step == 0:
+            self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+            self.image = self.frames[self.cur_frame]
+
+        self.step += 1
+        self.step %= 16
+
+        self.rect.x += self.direct
+        self.w -= 1
+
+        if self.w == 0:
+            bullets.remove(self)
 
 
 start_screen()
@@ -282,6 +416,7 @@ camera = Camera()
 load_lvl()
 
 run = True
+enemy_step = 0
 pygame.mouse.set_visible(0)
 
 while run:
@@ -301,6 +436,13 @@ while run:
 
     players.update()
 
+    if enemy_step == 0:
+        enemies.update()
+
+    bullets.update()
+
+    enemy_step += 1
+    enemy_step %= 4
 
     if not pl.hor_col:
         bg.scroll(pl.speed, orientation)
@@ -309,12 +451,25 @@ while run:
     pl.ver_col = False
     pl.pl_state = False
 
+    for sprite in enemies:
+        sprite.hor_col = False
+        sprite.pl_state = False
+
     bg.draw(screen)
     objects.draw(screen)
+    enemies.draw(screen)
+    visions.draw(screen)
+    bullets.draw(screen)
     all_sprites.draw(screen)
     for sprite in all_sprites:
         camera.apply(sprite)
     for sprite in objects:
+        camera.apply(sprite)
+    for sprite in enemies:
+        camera.apply(sprite)
+    for sprite in visions:
+        camera.apply(sprite)
+    for sprite in bullets:
         camera.apply(sprite)
     camera.update(pl)
 
