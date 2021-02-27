@@ -24,6 +24,7 @@ borders = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 visions = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
+hud_group = pygame.sprite.Group()
 clock = pygame.time.Clock()
 
 
@@ -106,6 +107,14 @@ def load_lvl(new=False):
 
     for i in range(5):
         Enemy()
+
+def hud():
+    img = load_image('health.png')
+    screen.blit(img, (20, 20))
+
+    hud_group.draw(screen)
+
+
 
 
 class Camera:
@@ -240,6 +249,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.y = 440 - self.rect.h
         self.speed = 0
         self.jump = 0
+        self.health = 50
         self.pl_state = False
         self.hor_col = False
         self.ver_col = False
@@ -318,6 +328,8 @@ class Enemy(pygame.sprite.Sprite):
 
         self.per_state = False
 
+        self.gun = 150
+
         self.image = Enemy.image
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
@@ -370,7 +382,9 @@ class Enemy(pygame.sprite.Sprite):
 
         self.vision.update()
 
-        if (not pygame.sprite.spritecollideany(self.vision, objects)) and (pygame.sprite.collide_mask(self.vision, pl)):
+        if (not pygame.sprite.spritecollideany(self.vision, objects)) and\
+                (pygame.sprite.collide_mask(self.vision, pl)) and (self.gun > 0):
+            self.gun -= 1
             if self.speed == 1 or self.per_state:
                 EnemyBullet(self.rect.x + 50, self.rect.y + 20, 1)
             else:
@@ -395,8 +409,25 @@ class EnemyBullet(AnimatedSprite):
         self.rect.x += self.direct
         self.w -= 1
 
+        if pygame.sprite.collide_mask(self, pl):
+            pl.health -= 0.1
+            h = str(round(pl.health)).rjust(2, "0")
+            n1.update(int(h[0]))
+            n2.update(int(h[1]))
+
+            if pl.health < 0:
+                start_screen()
+
+            bullets.remove(self)
+
         if self.w == 0:
             bullets.remove(self)
+
+
+class Numbers(AnimatedSprite):
+    def update(self, num):
+        self.cur_frame = num
+        self.image = self.frames[self.cur_frame]
 
 
 start_screen()
@@ -412,6 +443,9 @@ hb = Border("h")
 nb = NextLvlBorder()
 pl = Player()
 camera = Camera()
+n1 = Numbers(hud_group, load_image("numbers.png"), 10, 1, 60, 20)
+n2 = Numbers(hud_group, load_image("numbers.png"), 10, 1, 90, 20)
+n1.update(5)
 
 load_lvl()
 
@@ -460,6 +494,9 @@ while run:
     enemies.draw(screen)
     visions.draw(screen)
     bullets.draw(screen)
+
+    hud()
+
     all_sprites.draw(screen)
     for sprite in all_sprites:
         camera.apply(sprite)
