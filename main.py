@@ -24,6 +24,7 @@ borders = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 visions = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
+non_col_objects = pygame.sprite.Group()
 hud_group = pygame.sprite.Group()
 clock = pygame.time.Clock()
 
@@ -72,7 +73,7 @@ def start_screen():
 
 
 def load_lvl(new=False):
-    global objects, enemies, visions, bullets
+    global objects, enemies, visions, bullets, non_col_objects
     lvl = gen_lvl()
     pl.reset()
     if new:
@@ -86,11 +87,16 @@ def load_lvl(new=False):
     enemies = pygame.sprite.Group()
     visions = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
+    non_col_objects = pygame.sprite.Group()
 
     Object("next_lvl.png", -1, None, 1550, 150)
 
     with open(os.path.join('data', "params.json")) as json_file:
         params = json.load(json_file)
+
+    chests = 3
+    barrels = 4
+
     for i in range(len(lvl)):
         for j in range(len(lvl[i])):
             if type(lvl[i][j]) is str:
@@ -101,6 +107,25 @@ def load_lvl(new=False):
                 l = params[lvl[i][j]]["collision"]
                 p = Object(n, c, l, x, y)
                 lvl[i][j] = p.rec_params()
+
+                if round(random.random()) and (barrels > 0):
+                    barrels -= 1
+                    bar = random.choice(("bbar", "rbar", "ybar"))
+                    x = random.randint(x, x + p.rec_params()[0] - 24)
+                    Object(params[bar]["name"], None, None, x, y - 40, group=True)
+                else:
+                    chance = random.randint(-1, 10 - i)
+                    if chance == 0 and chests > 0:
+                        chests -= 1
+                        x = random.randint(x, x + p.rec_params()[0] - 30)
+                        y -= 30
+                        ch = random.choice(("bcch", "gcch", "rcch", "wcch"))
+                        if ch == "rcch":
+                            Chest(params[ch]["name"], "health", x, y)
+                        elif ch == "wcch":
+                            Chest(params[ch]["name"], "ammo", x, y)
+                        else:
+                            Chest(params[ch]["name"], "gun", x, y)
 
     for i in range(5):
         Enemy()
@@ -137,6 +162,10 @@ def new_game():
                 pl.update("KEYUP", "LEFT")
             if event.type == KEYDOWN and event.key == K_UP:
                 pl.update("KEYDOWN", "UP")
+            if event.type == KEYDOWN and event.key == K_e:
+                for i in non_col_objects:
+                    if type(i) is Chest:
+                        i.update(pl, op=True)
 
         players.update()
 
@@ -144,6 +173,7 @@ def new_game():
             enemies.update()
 
         bullets.update()
+        non_col_objects.update(pl)
 
         enemy_step += 1
         enemy_step %= 4
@@ -164,6 +194,7 @@ def new_game():
         enemies.draw(screen)
         visions.draw(screen)
         bullets.draw(screen)
+        non_col_objects.draw(screen)
 
         hud()
 
@@ -177,6 +208,8 @@ def new_game():
         for sprite in visions:
             camera.apply(sprite)
         for sprite in bullets:
+            camera.apply(sprite)
+        for sprite in non_col_objects:
             camera.apply(sprite)
         camera.update(pl)
 
@@ -222,8 +255,12 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 
 class Object(pygame.sprite.Sprite):
-    def __init__(self, name, colorkey, collision, x, y):
-        super().__init__(objects)
+    def __init__(self, name, colorkey, collision, x, y, group=False):
+        if group:
+            super().__init__(non_col_objects)
+        else:
+            super().__init__(objects)
+        self.name = name
         image = load_image(name, color_key=colorkey)
         self.image = image
         self.rect = self.image.get_rect()
@@ -236,7 +273,7 @@ class Object(pygame.sprite.Sprite):
         return (self.rect.w, self.rect.h)
 
     def update(self, obj):
-        if pygame.sprite.collide_mask(self, obj):
+        if pygame.sprite.collide_mask(self, obj) and self.collision:
             obj.rect.x -= obj.speed
             if pygame.sprite.collide_mask(self, obj):
                 obj.rect.x += obj.speed
@@ -254,6 +291,7 @@ class Object(pygame.sprite.Sprite):
 class Floor(Object):
     def __init__(self):
         super(Object, self).__init__(borders, all_sprites)
+        self.collision = True
         self.image = pygame.Surface([1500, 10])
         self.image.fill("black")
         self.rect = pygame.Rect(0, 440, 1500, 10)
@@ -267,6 +305,7 @@ class Border(Object):
     def __init__(self, type):
         super(Object, self).__init__(borders, all_sprites)
         self.type = type
+        self.collision = True
         if type == "v":
             self.image = pygame.Surface([1, 500])
             self.mask = pygame.mask.from_surface(self.image)
@@ -289,6 +328,7 @@ class NextLvlBorder(Border):
     def __init__(self):
         super(Object, self).__init__(borders, all_sprites)
         self.type = type
+        self.collision = True
         self.image = pygame.Surface([1, 500])
         self.mask = pygame.mask.from_surface(self.image)
         self.image.set_colorkey(self.image.get_at((0, 0)))
@@ -302,6 +342,31 @@ class NextLvlBorder(Border):
 
     def reset(self):
         self.rect = pygame.Rect(1500, 0, 1, 500)
+
+
+class Chest(Object):
+    def __init__(self, name, inside, x, y):
+        super().__init__(name, None, None, x, y, group=True)
+        self.open = False
+        self.e = None
+        self.inside = inside
+
+    def update(self, obj, op=False):
+        if pygame.sprite.collide_mask(self, obj) and (not self.open):
+            if op:
+                non_col_objects.remove(self.e)
+                self.open = True
+                self.rect.y -= 13
+                self.image = load_image(f"{self.name[0]}_o_chest.png", -1)
+                self.e = None
+            else:
+                if self.e is None:
+                    self.e = Object("e.png", None, None, self.rect.x + 30, self.rect.y - 20, group=True)
+        else:
+            if self.e:
+                if self.e in non_col_objects:
+                    non_col_objects.remove(self.e)
+                    self.e = None
 
 
 class Player(pygame.sprite.Sprite):
@@ -373,18 +438,18 @@ class EnemyVision(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
         self.image.set_colorkey(self.image.get_at((0, 0)))
         if self.enemy.speed == 1:
-            self.rect = pygame.Rect(self.enemy.rect.x, self.enemy.rect.y, 200, 40)
+            self.rect = pygame.Rect(self.enemy.rect.x + 20, self.enemy.rect.y, 200, 40)
         else:
             if self.enemy.per_state:
-                self.rect = pygame.Rect(self.enemy.rect.x, self.enemy.rect.y, 200, 40)
+                self.rect = pygame.Rect(self.enemy.rect.x + 20, self.enemy.rect.y, 200, 40)
             else:
-                self.rect = pygame.Rect(self.enemy.rect.x - 100, self.enemy.rect.y, 200, 40)
+                self.rect = pygame.Rect(self.enemy.rect.x - 120, self.enemy.rect.y, 200, 40)
 
     def update(self):
         if self.enemy.speed == 1 or self.enemy.per_state:
-            self.rect = pygame.Rect(self.enemy.rect.x, self.enemy.rect.y, 200, 40)
+            self.rect = pygame.Rect(self.enemy.rect.x + 20, self.enemy.rect.y, 200, 40)
         else:
-            self.rect = pygame.Rect(self.enemy.rect.x - 100, self.enemy.rect.y, 200, 40)
+            self.rect = pygame.Rect(self.enemy.rect.x - 120, self.enemy.rect.y, 200, 40)
 
 
 class Enemy(pygame.sprite.Sprite):
