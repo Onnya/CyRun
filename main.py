@@ -44,10 +44,7 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ["ЗАСТАВКА", "",
-                  "Правила игры",
-                  "Если в правилах несколько строк,",
-                  "приходится выводить их построчно"]
+    pygame.mouse.set_visible(1)
 
     img = load_image('dmaintheme.png')
     screen.blit(img, (0, 0))
@@ -61,7 +58,6 @@ def start_screen():
     img = load_image('ng.png')
     screen.blit(img, (230, 275))
 
-
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -70,6 +66,7 @@ def start_screen():
                 x = event.pos[0]
                 y = event.pos[1]
                 if (230 <= x <= 430) and (275 <= y <= 310):
+                    new_game()
                     return
         pygame.display.flip()
 
@@ -108,6 +105,7 @@ def load_lvl(new=False):
     for i in range(5):
         Enemy()
 
+
 def hud():
     img = load_image('health.png')
     screen.blit(img, (20, 20))
@@ -115,6 +113,75 @@ def hud():
     hud_group.draw(screen)
 
 
+def new_game():
+    n1.update(5)
+    pl.health = 50
+
+    load_lvl()
+
+    run = True
+    enemy_step = 0
+    pygame.mouse.set_visible(0)
+
+    while run:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                run = False
+            if event.type == KEYDOWN and event.key == K_RIGHT:
+                pl.update("KEYDOWN", "RIGHT")
+            if event.type == KEYUP and event.key == K_RIGHT:
+                pl.update("KEYUP", "RIGHT")
+            if event.type == KEYDOWN and event.key == K_LEFT:
+                pl.update("KEYDOWN", "LEFT")
+            if event.type == KEYUP and event.key == K_LEFT:
+                pl.update("KEYUP", "LEFT")
+            if event.type == KEYDOWN and event.key == K_UP:
+                pl.update("KEYDOWN", "UP")
+
+        players.update()
+
+        if enemy_step == 0:
+            enemies.update()
+
+        bullets.update()
+
+        enemy_step += 1
+        enemy_step %= 4
+
+        if not pl.hor_col:
+            bg.scroll(pl.speed, orientation)
+
+        pl.hor_col = False
+        pl.ver_col = False
+        pl.pl_state = False
+
+        for sprite in enemies:
+            sprite.hor_col = False
+            sprite.pl_state = False
+
+        bg.draw(screen)
+        objects.draw(screen)
+        enemies.draw(screen)
+        visions.draw(screen)
+        bullets.draw(screen)
+
+        hud()
+
+        all_sprites.draw(screen)
+        for sprite in all_sprites:
+            camera.apply(sprite)
+        for sprite in objects:
+            camera.apply(sprite)
+        for sprite in enemies:
+            camera.apply(sprite)
+        for sprite in visions:
+            camera.apply(sprite)
+        for sprite in bullets:
+            camera.apply(sprite)
+        camera.update(pl)
+
+        pygame.display.flip()
+        clock.tick(fps)
 
 
 class Camera:
@@ -430,8 +497,6 @@ class Numbers(AnimatedSprite):
         self.image = self.frames[self.cur_frame]
 
 
-start_screen()
-
 bg = parallax.ParallaxSurface((700, 450), pygame.RLEACCEL)
 bg.add(os.path.join('data', 'far-buildings.png'), 17)
 bg.add(os.path.join('data', 'back-buildings.png'), 9)
@@ -445,71 +510,5 @@ pl = Player()
 camera = Camera()
 n1 = Numbers(hud_group, load_image("numbers.png"), 10, 1, 60, 20)
 n2 = Numbers(hud_group, load_image("numbers.png"), 10, 1, 90, 20)
-n1.update(5)
 
-load_lvl()
-
-run = True
-enemy_step = 0
-pygame.mouse.set_visible(0)
-
-while run:
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            run = False
-        if event.type == KEYDOWN and event.key == K_RIGHT:
-            pl.update("KEYDOWN", "RIGHT")
-        if event.type == KEYUP and event.key == K_RIGHT:
-            pl.update("KEYUP", "RIGHT")
-        if event.type == KEYDOWN and event.key == K_LEFT:
-            pl.update("KEYDOWN", "LEFT")
-        if event.type == KEYUP and event.key == K_LEFT:
-            pl.update("KEYUP", "LEFT")
-        if event.type == KEYDOWN and event.key == K_UP:
-            pl.update("KEYDOWN", "UP")
-
-    players.update()
-
-    if enemy_step == 0:
-        enemies.update()
-
-    bullets.update()
-
-    enemy_step += 1
-    enemy_step %= 4
-
-    if not pl.hor_col:
-        bg.scroll(pl.speed, orientation)
-
-    pl.hor_col = False
-    pl.ver_col = False
-    pl.pl_state = False
-
-    for sprite in enemies:
-        sprite.hor_col = False
-        sprite.pl_state = False
-
-    bg.draw(screen)
-    objects.draw(screen)
-    enemies.draw(screen)
-    visions.draw(screen)
-    bullets.draw(screen)
-
-    hud()
-
-    all_sprites.draw(screen)
-    for sprite in all_sprites:
-        camera.apply(sprite)
-    for sprite in objects:
-        camera.apply(sprite)
-    for sprite in enemies:
-        camera.apply(sprite)
-    for sprite in visions:
-        camera.apply(sprite)
-    for sprite in bullets:
-        camera.apply(sprite)
-    camera.update(pl)
-
-
-    pygame.display.flip()
-    clock.tick(fps)
+start_screen()
