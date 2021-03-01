@@ -44,7 +44,8 @@ def info():
 
 def terminate():
     save = {
-        "health": pl.health
+        "health": pl.health,
+        "score": pl.score
     }
     with open(os.path.join("data", "load_game.json"), mode="w") as text:
         json.dump(save, text)
@@ -86,7 +87,7 @@ def start_screen():
 def continue_game():
     with open(os.path.join("data", "load_game.json")) as text:
         objs = json.load(text)
-    new_game(health=objs["health"])
+    new_game(health=objs["health"], score=objs["score"])
 
 
 def load_lvl(new=False):
@@ -139,6 +140,8 @@ def load_lvl(new=False):
                         ch = random.choice(("bcch", "gcch", "rcch", "wcch"))
                         if ch == "rcch":
                             Chest(params[ch]["name"], "health", x, y)
+                        elif ch == "gcch":
+                            Chest(params[ch]["name"], "score", x, y)
                         elif ch == "wcch":
                             Chest(params[ch]["name"], "ammo", x, y)
                         else:
@@ -152,14 +155,24 @@ def hud():
     img = load_image('health.png')
     screen.blit(img, (20, 20))
 
-    hud_group.draw(screen)
-
-
-def new_game(health=50):
-    pl.health = health
     h = str(round(pl.health)).rjust(2, "0")
     n1.update(int(h[0]))
     n2.update(int(h[1]))
+
+    s = str(round(pl.score)).rjust(5, "0")[-5:]
+    s1.update(int(s[0]))
+    s2.update(int(s[1]))
+    s3.update(int(s[2]))
+    s4.update(int(s[3]))
+    s5.update(int(s[4]))
+
+    hud_group.draw(screen)
+
+
+def new_game(health=50, score=0):
+    pl.health = health
+    pl.score = score
+    hud()
 
 
     load_lvl()
@@ -364,6 +377,7 @@ class NextLvlBorder(Border):
         if type(obj) is not Player:
             super().update(obj)
         if pygame.sprite.collide_mask(self, pl):
+            pl.score += 10
             load_lvl(True)
 
     def reset(self):
@@ -392,6 +406,9 @@ class Chest(Object):
                     h = str(round(pl.health)).rjust(2, "0")
                     n1.update(int(h[0]))
                     n2.update(int(h[1]))
+                elif self.inside == "score":
+                    pl.score += 30
+                    hud()
 
             else:
                 if self.e is None:
@@ -419,6 +436,7 @@ class Player(pygame.sprite.Sprite):
         self.pl_state = False
         self.hor_col = False
         self.ver_col = False
+        self.score = 0
 
     def update(self, *args):
         if args:
@@ -577,9 +595,7 @@ class EnemyBullet(AnimatedSprite):
 
         if pygame.sprite.collide_mask(self, pl):
             pl.health -= 0.1
-            h = str(round(pl.health)).rjust(2, "0")
-            n1.update(int(h[0]))
-            n2.update(int(h[1]))
+            hud()
 
             if pl.health < 0:
                 start_screen()
@@ -607,7 +623,14 @@ hb = Border("h")
 nb = NextLvlBorder()
 pl = Player()
 camera = Camera()
+
 n1 = Numbers(hud_group, load_image("numbers.png"), 10, 1, 60, 20)
 n2 = Numbers(hud_group, load_image("numbers.png"), 10, 1, 90, 20)
+
+s1 = Numbers(hud_group, load_image("numbers1.png"), 10, 1, 520, 20)
+s2 = Numbers(hud_group, load_image("numbers1.png"), 10, 1, 550, 20)
+s3 = Numbers(hud_group, load_image("numbers1.png"), 10, 1, 580, 20)
+s4 = Numbers(hud_group, load_image("numbers1.png"), 10, 1, 610, 20)
+s5 = Numbers(hud_group, load_image("numbers1.png"), 10, 1, 640, 20)
 
 start_screen()
