@@ -3,7 +3,7 @@ import sys
 import random
 import pygame
 from pygame.locals import *
-import parallax
+import pyparallax as parallax
 from image_tools import load_image
 from lvl_tools import gen_lvl
 import json
