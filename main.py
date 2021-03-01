@@ -17,6 +17,9 @@ size = width, height = 700, 450
 orientation = 'horizontal'
 fps = 450
 pygame.display.set_caption('CyRun')
+pygame.mixer.music.load(os.path.join('data', "main.ogg"))
+pygame.mixer.music.play(0)
+pygame.mixer.music.set_volume(0.01)
 all_sprites = pygame.sprite.Group()
 players = pygame.sprite.Group()
 objects = pygame.sprite.Group()
@@ -40,6 +43,11 @@ def info():
 
 
 def terminate():
+    save = {
+        "health": pl.health
+    }
+    with open(os.path.join("data", "load_game.json"), mode="w") as text:
+        json.dump(save, text)
     pygame.quit()
     sys.exit()
 
@@ -69,7 +77,16 @@ def start_screen():
                 if (230 <= x <= 430) and (275 <= y <= 310):
                     new_game()
                     return
+                elif (230 <= x <= 430) and (230 <= y <= 265):
+                    continue_game()
+                    return
         pygame.display.flip()
+
+
+def continue_game():
+    with open(os.path.join("data", "load_game.json")) as text:
+        objs = json.load(text)
+    new_game(health=objs["health"])
 
 
 def load_lvl(new=False):
@@ -138,20 +155,22 @@ def hud():
     hud_group.draw(screen)
 
 
-def new_game():
-    n1.update(5)
-    pl.health = 50
+def new_game(health=50):
+    pl.health = health
+    h = str(round(pl.health)).rjust(2, "0")
+    n1.update(int(h[0]))
+    n2.update(int(h[1]))
+
 
     load_lvl()
 
-    run = True
     enemy_step = 0
     pygame.mouse.set_visible(0)
 
-    while run:
+    while True:
         for event in pygame.event.get():
             if event.type == QUIT:
-                run = False
+                terminate()
             if event.type == KEYDOWN and event.key == K_RIGHT:
                 pl.update("KEYDOWN", "RIGHT")
             if event.type == KEYUP and event.key == K_RIGHT:
@@ -212,6 +231,13 @@ def new_game():
         for sprite in non_col_objects:
             camera.apply(sprite)
         camera.update(pl)
+
+        if not pygame.mixer.music.get_busy():
+            m = random.choice(("", "2", "3", "4"))
+            pygame.mixer.music.load(os.path.join('data', f"main{m}.ogg"))
+            pygame.mixer.music.play(0)
+            pygame.mixer.music.set_volume(0.01)
+
 
         pygame.display.flip()
         clock.tick(fps)
@@ -359,6 +385,14 @@ class Chest(Object):
                 self.rect.y -= 13
                 self.image = load_image(f"{self.name[0]}_o_chest.png", -1)
                 self.e = None
+                if self.inside == "health":
+                    pl.health += 10
+                    if pl.health > 50:
+                        pl.health = 50
+                    h = str(round(pl.health)).rjust(2, "0")
+                    n1.update(int(h[0]))
+                    n2.update(int(h[1]))
+
             else:
                 if self.e is None:
                     self.e = Object("e.png", None, None, self.rect.x + 30, self.rect.y - 20, group=True)
