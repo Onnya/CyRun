@@ -43,12 +43,13 @@ def info():
 
 
 def terminate():
-    save = {
-        "health": pl.health,
-        "score": pl.score
-    }
-    with open(os.path.join("data", "load_game.json"), mode="w") as text:
-        json.dump(save, text)
+    if pl.health > 0:
+        save = {
+            "health": pl.health,
+            "score": pl.score
+        }
+        with open(os.path.join("data", "load_game.json"), mode="w") as text:
+            json.dump(save, text)
     pygame.quit()
     sys.exit()
 
@@ -595,10 +596,18 @@ class EnemyBullet(AnimatedSprite):
 
         if pygame.sprite.collide_mask(self, pl):
             pl.health -= 0.1
-            hud()
+
 
             if pl.health < 0:
+                save = {
+                    "health": 50,
+                    "score": 0
+                }
+                with open(os.path.join("data", "load_game.json"), mode="w") as text:
+                    json.dump(save, text)
                 start_screen()
+
+            hud()
 
             bullets.remove(self)
 
