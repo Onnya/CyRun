@@ -1,2 +1,2 @@
 pygame>=2.0
-pyparallax==0.1
+git+git://github.com/forslund/pyParallax.git#egg=pyparallax
