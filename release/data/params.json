@@ -1,0 +1,147 @@
+{
+  "bbar": {
+    "name": "b_barrel.png",
+    "colorkey": null,
+    "collision": null
+  },
+  "bcch": {
+    "name": "b_c_chest.png",
+    "colorkey": null,
+    "collision": null
+  },
+  "blfp": {
+    "name": "b_l_f_platform.png",
+    "colorkey": -1,
+    "collision": "mask"
+  },
+  "boch": {
+    "name": "b_o_chest.png",
+    "colorkey": -1,
+    "collision": null
+  },
+  "bpan": {
+    "name": "b_pannel.png",
+    "colorkey": null,
+    "collision": "mask"
+  },
+  "bsfp": {
+    "name": "b_s_f_platform.png",
+    "colorkey": -1,
+    "collision": "mask"
+  },
+  "dabp": {
+    "name": "dang_b_platform.png",
+    "colorkey": null,
+    "collision": "mask"
+  },
+  "darp": {
+    "name": "dang_r_platform.png",
+    "colorkey": null,
+    "collision": "mask"
+  },
+  "dayp": {
+    "name": "dang_y_platform.png",
+    "colorkey": null,
+    "collision": "mask"
+  },
+  "ftng": {
+    "name": "fittings.png",
+    "colorkey": -1,
+    "collision": "mask"
+  },
+  "gcch": {
+    "name": "g_c_chest.png",
+    "colorkey": null,
+    "collision": null
+  },
+  "glfp": {
+    "name": "g_l_f_platform.png",
+    "colorkey": -1,
+    "collision": "mask"
+  },
+  "goch": {
+    "name": "g_o_chest.png",
+    "colorkey": -1,
+    "collision": null
+  },
+  "gpan": {
+    "name": "g_pannel.png",
+    "colorkey": null,
+    "collision": "mask"
+  },
+  "gsfp": {
+    "name": "g_s_f_platform.png",
+    "colorkey": -1,
+    "collision": "mask"
+  },
+  "lbpl": {
+    "name": "l_b_platform.png",
+    "colorkey": null,
+    "collision": "mask"
+  },
+  "lypl": {
+    "name": "l_y_platform.png",
+    "colorkey": null,
+    "collision": "mask"
+  },
+  "rbar": {
+    "name": "r_barrel.png",
+    "colorkey": null,
+    "collision": null
+  },
+  "rcch": {
+    "name": "r_c_chest.png",
+    "colorkey": null,
+    "collision": null
+  },
+  "rlfp": {
+    "name": "r_l_f_platform.png",
+    "colorkey": -1,
+    "collision": "mask"
+  },
+  "roch": {
+    "name": "r_o_chest.png",
+    "colorkey": -1,
+    "collision": null
+  },
+  "rsfp": {
+    "name": "r_s_f_platform.png",
+    "colorkey": -1,
+    "collision": "mask"
+  },
+  "wcch": {
+    "name": "w_c_chest.png",
+    "colorkey": null,
+    "collision": null
+  },
+  "woch": {
+    "name": "w_o_chest.png",
+    "colorkey": -1,
+    "collision": null
+  },
+  "wpan": {
+    "name": "w_pannel.png",
+    "colorkey": null,
+    "collision": "mask"
+  },
+  "ybar": {
+    "name": "y_barrel.png",
+    "colorkey": null,
+    "collision": null
+  },
+  "ylfp": {
+    "name": "y_l_f_platform.png",
+    "colorkey": -1,
+    "collision": "mask"
+  },
+  "ypan": {
+    "name": "y_pannel.png",
+    "colorkey": null,
+    "collision": "mask"
+  },
+  "ysfp": {
+    "name": "y_s_f_platform.png",
+    "colorkey": -1,
+    "collision": "mask"
+  }
+}
